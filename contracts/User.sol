@@ -31,6 +31,9 @@ contract User {
     // Employee address => bool
     mapping(address => bool) private isEmployee;
 
+    // User address => username
+    mapping(address => string) private users;
+
     // TODO Course struct to be created to hold course details
     // TODO Add course, delete course functions
     // TODO Check for change in course status, emit an event on course completion that initiates streaming from employer to employee
@@ -54,6 +57,14 @@ contract User {
         uint8 numOfEmployees; // The number of employees in the organization
     }
 
+    /** 
+     * @notice - This function is used to retrieve the username based on wallet address
+     * @param _address - The address of the user.
+     */
+    function getUserName(address _address) external view returns(string memory username){
+        return users[_address];
+    }
+    
     /** 
      * @notice - This function is used to determine the type of user
      * 1 = employer. 2 = employee. 3 = unenrolled
@@ -87,7 +98,7 @@ contract User {
     /**
      * @notice - This function is used to create a new employer/owner
      */
-    function createEmployer() public {
+    function createEmployer(string memory username) public {
         require(
             !isEmployer[msg.sender],
             "You are already registered as an Employer"
@@ -100,6 +111,7 @@ contract User {
         });
         employer_Organization[msg.sender] = organization;
         isEmployer[msg.sender] = true;
+        users[msg.sender]=username;
     }
 
     /**
@@ -128,6 +140,7 @@ contract User {
         employee_Employer[_employeeAddress] = msg.sender;
         employee_AccountDetails[_employeeAddress] = employee;
         member_Organization[msg.sender][employeeId] = employee;
+        users[_employeeAddress]=_employeeName;
     }
 
     /**
