@@ -34,7 +34,24 @@ contract User {
     // User address => username
     mapping(address => string) private users;
 
-    // TODO Course struct to be created to hold course details
+    mapping(address => Course[]) private employerCourses;
+
+    mapping(address => Course[]) private employeeCourses;
+
+    mapping(address => mapping(uint8 => EmployeeCourseStatus)) private employeeCourseStatus;
+
+    /**
+     * Course details
+     */
+    struct Course {
+        uint8 id; 
+        string name; 
+        string desc;
+        address owner; 
+        string url;
+        uint8 bounty;
+    }
+
     // TODO Add course, delete course functions
     // TODO Check for change in course status, emit an event on course completion that initiates streaming from employer to employee
     // TODO Function to get all the learning courses added by employer
@@ -43,6 +60,12 @@ contract User {
     enum Access {
         Locked, // Locked by employer. Can't be unlocked by employee. No access to widrawal of funds.
         Unlocked // Unlocked by employer. Can't be unlocked by employee. No access to widrawal of funds.
+    }
+
+    enum EmployeeCourseStatus {
+        NOT_STARTED,
+        IN_PROGRESS,
+        COMPLETED
     }
 
     struct Employee {
@@ -64,7 +87,95 @@ contract User {
     function getUserName(address _address) external view returns(string memory username){
         return users[_address];
     }
+
+    /**
+     * @notice - Creates course
+     *
+     * @param _name - name of the course
+     * @param _desc - description of the course
+     * @param _url - url of the course
+     * @param _bounty - bounty for the course
+     */
+    function createCourse(string memory _name, string memory _desc, 
+        string memory _url, uint8 _bounty) public {
+        require(
+            (bytes(_name).length == 0 || bytes(_url).length == 0 || _bounty == 0),
+            "Error: Mandatory information course name/url/bounty missing"
+        );
+
+        require(
+            !isEmployer[msg.sender],
+            "Access Restricted: Courses can be created only by an employer"
+        );
+
+        Course memory course = Course({
+            id: uint8(employerCourses[msg.sender].length + 1),
+            name: _name,
+            desc: _desc,
+            owner: msg.sender,
+            url: _url,
+            bounty: _bounty
+        });
+        employerCourses[msg.sender].push(course);
+    }
+
+    /**
+     * @notice - Fetch course list based on user type
+     *
+     * @return courseList - list of courses  
+     */
+    function fetchCourses() view public returns (Course[] memory courseList) {
+        Course[] memory courses;
+        if (this.getUserType(msg.sender) == 1) { //Employer
+            return employerCourses[msg.sender];
+        } else if (isEmployer[msg.sender]) { //Employee
+            return employeeCourses[msg.sender];
+        } else {
+            return courses;
+        }
+    }
+
+    /**
+     * @notice - Start course
+     *
+     * @param _courseId - course ID
+     * @return - operation success/fail
+     */
+    function subscribeCourse(uint8 _courseId) public returns (bool) {
+        require(isEmployer[msg.sender], "Only an employee can make this request");
+
+        Course[] memory allCourses = employerCourses[employee_Employer[msg.sender]];
+        for (uint8 i = 0; i < allCourses.length; i++) {
+            if (allCourses[i].id == _courseId) {
+                employeeCourses[msg.sender].push(allCourses[i]);
+                employeeCourseStatus[msg.sender][allCourses[i].id] = EmployeeCourseStatus.NOT_STARTED;
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     * @notice - Start course
+     *
+     * @param _courseId - course ID
+     * @return courseUrl - course URL
+     */
+    function startCourse(uint8 _courseId) public returns (string memory courseUrl) {
+        require(isEmployer[msg.sender], "Only an employee can make this request");
+
+        Course[] memory allCourses = employeeCourses[msg.sender];
+        for (uint8 i = 0; i < allCourses.length; i++) {
+            if (allCourses[i].id == _courseId && employeeCourseStatus[msg.sender][allCourses[i].id] == EmployeeCourseStatus.NOT_STARTED) {
+                employeeCourseStatus[msg.sender][allCourses[i].id] = EmployeeCourseStatus.IN_PROGRESS;
+                return allCourses[i].url;
+            }
+        }
+        return "";
+    }
     
+
     /** 
      * @notice - This function is used to determine the type of user
      * 1 = employer. 2 = employee. 3 = unenrolled

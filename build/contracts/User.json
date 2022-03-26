@@ -5,41 +5,156 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_address",
+          "name": "_employeeAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "_employeeName",
+          "type": "string"
+        }
+      ],
+      "name": "addEmployee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_employeeAddress",
           "type": "address"
         }
       ],
-      "name": "getUserName",
-      "outputs": [
+      "name": "changeAccess",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_name",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "_desc",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "_url",
+          "type": "string"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_bounty",
+          "type": "uint8"
+        }
+      ],
+      "name": "createCourse",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
         {
           "internalType": "string",
           "name": "username",
           "type": "string"
         }
       ],
-      "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "name": "createEmployer",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "user",
-          "type": "address"
+          "internalType": "uint8",
+          "name": "_courseId",
+          "type": "uint8"
         }
       ],
-      "name": "getUserType",
+      "name": "startCourse",
       "outputs": [
         {
-          "internalType": "uint256",
+          "internalType": "string",
+          "name": "courseUrl",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "_courseId",
+          "type": "uint8"
+        }
+      ],
+      "name": "subscribeCourse",
+      "outputs": [
+        {
+          "internalType": "bool",
           "name": "",
-          "type": "uint256"
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "fetchCourses",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "id",
+              "type": "uint8"
+            },
+            {
+              "internalType": "string",
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "desc",
+              "type": "string"
+            },
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            },
+            {
+              "internalType": "string",
+              "name": "url",
+              "type": "string"
+            },
+            {
+              "internalType": "uint8",
+              "name": "bounty",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct User.Course[]",
+          "name": "courseList",
+          "type": "tuple[]"
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "inputs": [],
@@ -69,51 +184,44 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function",
-      "constant": true
+      "type": "function"
     },
     {
       "inputs": [
+        {
+          "internalType": "address",
+          "name": "_address",
+          "type": "address"
+        }
+      ],
+      "name": "getUserName",
+      "outputs": [
         {
           "internalType": "string",
           "name": "username",
           "type": "string"
         }
       ],
-      "name": "createEmployer",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "stateMutability": "view",
       "type": "function"
     },
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "_employeeAddress",
-          "type": "address"
-        },
-        {
-          "internalType": "string",
-          "name": "_employeeName",
-          "type": "string"
-        }
-      ],
-      "name": "addEmployee",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_employeeAddress",
+          "name": "user",
           "type": "address"
         }
       ],
-      "name": "changeAccess",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "name": "getUserType",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     }
   ],
