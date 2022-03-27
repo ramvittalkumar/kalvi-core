@@ -139,22 +139,23 @@ contract User {
         if (isEmployer[msg.sender]) { //Employer
             return employerCourses[msg.sender];
         } else if (isEmployee[msg.sender]) { //Employee
-            //mapping(address => Course[]) private employeeCourses;
-            //mapping(address => mapping(uint8 => EmployeeCourseStatus)) private employeeCourseStatus;
-
-            Course[] memory coursesList = employeeCourses[msg.sender];
-            Course[] memory incompletedList;
-            uint8 counter = 0;
-            for (uint8 i = 0; i < coursesList.length; i++) {
-                if(!(employeeCourseStatus[msg.sender][courseList[i].id] == EmployeeCourseStatus.COMPLETED)) {
-                    incompletedList[counter] = courseList[i];
-                    counter++;
-                }
-            }
-            return incompletedList;
+            return employeeCourses[msg.sender];
         } else {
             return courses;
         }
+    }
+
+    function fetchIncompleteCourses() view public returns (Course[] memory courseList) {
+        Course[] memory coursesList = employeeCourses[msg.sender];
+        Course[] memory incompletedList;
+        uint8 counter = 0;
+        for (uint8 i = 0; i < coursesList.length; i++) {
+            if(!(employeeCourseStatus[msg.sender][courseList[i].id] == EmployeeCourseStatus.COMPLETED)) {
+                incompletedList[counter] = courseList[i];
+                counter++;
+            }
+        }
+        return incompletedList;
     }
 
     /**
