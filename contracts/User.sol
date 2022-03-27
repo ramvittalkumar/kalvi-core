@@ -12,6 +12,9 @@ contract User {
     // Used when creating a new employee
     mapping(address => address) private employee_Employer;
 
+    // Employer-Employees mapping
+    mapping(address => address[]) private employer_Employees;
+
     // Employee address => Employee Struct
     // Used when creating a new Employee
     mapping(address => Employee) private employee_AccountDetails;
@@ -34,10 +37,13 @@ contract User {
     // User address => username
     mapping(address => string) private users;
 
+    // Courses employer creates
     mapping(address => Course[]) private employerCourses;
 
+    // Courses employee subscribed to
     mapping(address => Course[]) private employeeCourses;
 
+    // Status of courses employee had subscribed to
     mapping(address => mapping(uint8 => EmployeeCourseStatus)) private employeeCourseStatus;
 
     /**
@@ -62,6 +68,9 @@ contract User {
         Unlocked // Unlocked by employer. Can't be unlocked by employee. No access to widrawal of funds.
     }
 
+    /**
+    * Employee course status
+    */
     enum EmployeeCourseStatus {
         NOT_STARTED,
         IN_PROGRESS,
@@ -99,12 +108,12 @@ contract User {
     function createCourse(string memory _name, string memory _desc, 
         string memory _url, uint8 _bounty) public {
         require(
-            (bytes(_name).length == 0 || bytes(_url).length == 0 || _bounty == 0),
-            "Error: Mandatory information course name/url/bounty missing"
+            (bytes(_name).length != 0 && bytes(_url).length != 0 && _bounty != 0), 
+        "Error: Mandatory information course name/url/bounty missing"
         );
 
         require(
-            !isEmployer[msg.sender],
+            isEmployer[msg.sender],
             "Access Restricted: Courses can be created only by an employer"
         );
 
@@ -117,6 +126,7 @@ contract User {
             bounty: _bounty
         });
         employerCourses[msg.sender].push(course);
+        subscribeCourse(course);
     }
 
     /**
@@ -126,53 +136,84 @@ contract User {
      */
     function fetchCourses() view public returns (Course[] memory courseList) {
         Course[] memory courses;
-        if (this.getUserType(msg.sender) == 1) { //Employer
+        if (isEmployer[msg.sender]) { //Employer
             return employerCourses[msg.sender];
-        } else if (isEmployer[msg.sender]) { //Employee
-            return employeeCourses[msg.sender];
+        } else if (isEmployee[msg.sender]) { //Employee
+            //mapping(address => Course[]) private employeeCourses;
+            //mapping(address => mapping(uint8 => EmployeeCourseStatus)) private employeeCourseStatus;
+
+            Course[] memory coursesList = employeeCourses[msg.sender];
+            Course[] memory incompletedList;
+            uint8 counter = 0;
+            for (uint8 i = 0; i < coursesList.length; i++) {
+                if(!(employeeCourseStatus[msg.sender][courseList[i].id] == EmployeeCourseStatus.COMPLETED)) {
+                    incompletedList[counter] = courseList[i];
+                    counter++;
+                }
+            }
+            return incompletedList;
         } else {
             return courses;
         }
     }
 
     /**
-     * @notice - Start course
+     * @notice - Subscribe course
      *
-     * @param _courseId - course ID
-     * @return - operation success/fail
+     * @param _course - course
      */
-    function subscribeCourse(uint8 _courseId) public returns (bool) {
-        require(isEmployer[msg.sender], "Only an employee can make this request");
+    function subscribeCourse(Course memory _course) private {
+        address[] memory employees = employer_Employees[msg.sender];
 
-        Course[] memory allCourses = employerCourses[employee_Employer[msg.sender]];
-        for (uint8 i = 0; i < allCourses.length; i++) {
-            if (allCourses[i].id == _courseId) {
-                employeeCourses[msg.sender].push(allCourses[i]);
-                employeeCourseStatus[msg.sender][allCourses[i].id] = EmployeeCourseStatus.NOT_STARTED;
-                return true;
-            }
+        // All newly added courses are subscribed to all employers by default
+        for (uint8 i = 0; i < employees.length; i++) {
+            employeeCourses[employees[i]].push(_course);
+            employeeCourseStatus[employees[i]][_course.id] = EmployeeCourseStatus.NOT_STARTED;
         }
-        return false;
     }
 
 
     /**
-     * @notice - Start course
+     * @notice - Complete course
      *
      * @param _courseId - course ID
      * @return courseUrl - course URL
      */
-    function startCourse(uint8 _courseId) public returns (string memory courseUrl) {
-        require(isEmployer[msg.sender], "Only an employee can make this request");
+    function completeCourse(uint8 _courseId) public returns (string memory courseUrl) {
+        require(isEmployee[msg.sender], "Only an employee can make this request");
 
         Course[] memory allCourses = employeeCourses[msg.sender];
         for (uint8 i = 0; i < allCourses.length; i++) {
             if (allCourses[i].id == _courseId && employeeCourseStatus[msg.sender][allCourses[i].id] == EmployeeCourseStatus.NOT_STARTED) {
-                employeeCourseStatus[msg.sender][allCourses[i].id] = EmployeeCourseStatus.IN_PROGRESS;
+                employeeCourseStatus[msg.sender][allCourses[i].id] = EmployeeCourseStatus.COMPLETED;
                 return allCourses[i].url;
             }
         }
         return "";
+    }
+
+    /**
+     * @notice - Get course status
+     *
+     * @param _courseId - course ID
+     * @return courseStatus - course status
+     */
+    function getCourseStatus(uint8 _courseId) public view returns (string memory courseStatus) {
+        Course[] memory allCourses = employeeCourses[msg.sender];
+        string memory status;
+        for (uint8 i = 0; i < allCourses.length; i++) {
+            if (allCourses[i].id == _courseId) {
+                EmployeeCourseStatus cStatus = employeeCourseStatus[msg.sender][allCourses[i].id];
+                    if (cStatus == EmployeeCourseStatus.NOT_STARTED) {
+                        status = "NOT_STARTED";
+                    } else if (cStatus == EmployeeCourseStatus.IN_PROGRESS) {
+                        status = "IN_PROGRESS";
+                    } else if (cStatus == EmployeeCourseStatus.COMPLETED) {
+                        status = "COMPLETED";
+                    }
+            }
+        }
+        return status;
     }
     
 
@@ -252,6 +293,27 @@ contract User {
         employee_AccountDetails[_employeeAddress] = employee;
         member_Organization[msg.sender][employeeId] = employee;
         users[_employeeAddress]=_employeeName;
+
+        // Update employer-employees mapping
+        if (!isEmployeeAlreadyExist(_employeeAddress)) {
+            employer_Employees[msg.sender].push(_employeeAddress);
+        } 
+    }
+
+    /**
+     * @notice - Check if employee address already exist for the employer
+     *
+     * @param _employeeAddress - address of the employee
+     * @return - flag indicating if employee already present 
+     */
+    function isEmployeeAlreadyExist(address _employeeAddress) private view returns(bool) {
+        address[] memory employees = employer_Employees[msg.sender];
+
+        if (employees.length == 0) { return false; }
+        for (uint8 i = 0; i < employees.length; i++) {
+            if (employees[i] == _employeeAddress) { return true; }
+        }
+        return false;
     }
 
     /**
