@@ -139,24 +139,31 @@ contract User {
         if (isEmployer[msg.sender]) { //Employer
             return employerCourses[msg.sender];
         } else if (isEmployee[msg.sender]) { //Employee
-            return employeeCourses[msg.sender];
+            return fetchIncompleteCourses();
         } else {
             return courses;
         }
     }
 
-    function fetchIncompleteCourses() view public returns (Course[] memory courseList) {
+
+    /**
+     * @notice - Fetch incompleted course list
+     *
+     * @return courseList - list of courses  
+     */
+    function fetchIncompleteCourses() view public returns (Course[] memory) {
         Course[] memory coursesList = employeeCourses[msg.sender];
-        Course[] memory incompletedList;
+        Course[] memory incompletedList = new Course[](coursesList.length);
         uint8 counter = 0;
         for (uint8 i = 0; i < coursesList.length; i++) {
-            if(!(employeeCourseStatus[msg.sender][courseList[i].id] == EmployeeCourseStatus.COMPLETED)) {
-                incompletedList[counter] = courseList[i];
-                counter++;
+            if(employeeCourseStatus[msg.sender][coursesList[i].id] != EmployeeCourseStatus.COMPLETED) {
+                incompletedList[counter] = coursesList[i];
+                counter = counter + 1;
             }
         }
         return incompletedList;
     }
+
 
     /**
      * @notice - Subscribe course
