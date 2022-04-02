@@ -166,6 +166,25 @@ contract User {
 
 
     /**
+     * @notice - Fetch completed course list
+     *
+     * @return courseList - list of courses  
+     */
+    function fetchCompletedCourses() view public returns (Course[] memory) {
+        Course[] memory coursesList = employeeCourses[msg.sender];
+        Course[] memory completedList = new Course[](coursesList.length);
+        uint8 counter = 0;
+        for (uint8 i = 0; i < coursesList.length; i++) {
+            if(employeeCourseStatus[msg.sender][coursesList[i].id] == EmployeeCourseStatus.COMPLETED) {
+                completedList[counter] = coursesList[i];
+                counter = counter + 1;
+            }
+        }
+        return completedList;
+    }
+
+
+    /**
      * @notice - Subscribe course
      *
      * @param _course - course
@@ -177,6 +196,20 @@ contract User {
         for (uint8 i = 0; i < employees.length; i++) {
             employeeCourses[employees[i]].push(_course);
             employeeCourseStatus[employees[i]][_course.id] = EmployeeCourseStatus.NOT_STARTED;
+        }
+    }
+
+
+    /**
+     * @notice - Subscribe course
+     */
+    function subscribeCourse(address _address) private {
+        Course[] memory courses = employerCourses[msg.sender];
+
+        // All newly added courses are subscribed to all employers by default
+        for (uint8 i = 0; i < courses.length; i++) {
+            employeeCourses[_address].push(courses[i]);
+            employeeCourseStatus[_address][courses[i].id] = EmployeeCourseStatus.NOT_STARTED;
         }
     }
 
@@ -324,6 +357,9 @@ contract User {
         if (!isEmployeeAlreadyExist(_employeeAddress)) {
             employer_Employees[msg.sender].push(_employeeAddress);
         } 
+
+        // Subscribe all courses to new employee
+        subscribeCourse(_employeeAddress);
     }
 
     /**
