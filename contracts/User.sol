@@ -225,6 +225,24 @@ contract User {
     }
     
 
+    /**
+     * @notice - Fetch total course bounty value
+     *
+     * @param _employeeAddress - employee address
+     * @return totalBountyValue - total bounty value
+     */
+    function getTotalCourseBountyValue(address _employeeAddress) public view returns (uint8 totalBountyValue){
+        Course[] memory courses = employeeCourses[_employeeAddress];
+        totalBountyValue = 0;
+        for(uint8 i = 0; i < courses.length; i++) {
+            if (employeeCourseStatus[_employeeAddress][courses[i].id] == EmployeeCourseStatus.COMPLETED) {
+                totalBountyValue = totalBountyValue + courses[i].bounty;
+            }
+        }
+        return totalBountyValue;
+    }
+
+
     /** 
      * @notice - This function is used to determine the type of user
      * 1 = employer. 2 = employee. 3 = unenrolled
