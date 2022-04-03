@@ -409,7 +409,7 @@ contract User {
     /**
      * @notice - Fetches top performers based on total completion percentage
      */
-    function getTopPerformers() public returns (Employee[] memory topPerformers){
+    function getTopPerformers() public view returns (Employee[] memory){
         address[] memory employeeAddesses;
         if (isEmployee[msg.sender]){
             employeeAddesses = employer_Employees[employee_Employer[msg.sender]];
@@ -419,11 +419,9 @@ contract User {
             
         Employee[] memory employees = new Employee[](employeeAddesses.length);
         for(uint8 i = 0; i < employeeAddesses.length; i++) {
-            Employee memory employee = employee_AccountDetails[employeeAddesses[i]];
             uint8 totalBountyVal = getTotalCourseBountyValue(employeeAddesses[i]);
-            uint8 totalCourseCompletionPercentage = (employee._totalBounty / totalBountyVal) * 100;
             // Only employees with minimum completion percentage is eligible
-            if (totalCourseCompletionPercentage >= TOP_PERF_MIN_PERCENTAGE) {
+            if (totalBountyVal > 0) {
                 employees[i] = employee_AccountDetails[employeeAddesses[i]];
             }
         }
@@ -433,7 +431,7 @@ contract User {
 
         uint8 counter = 0;
         uint8 previousValue = 0;
-        topPerformers = new Employee[](employeeAddesses.length);
+        Employee[] memory topPerformers = new Employee[](employeeAddesses.length);
         for (uint8 j = 0; j < employees.length; j++) {
             if (employees[j]._totalBounty != previousValue) {
                 if (counter == TOP_PERFORMERS_COUNT) {
@@ -443,7 +441,8 @@ contract User {
             }
             topPerformers[j] = employees[j];
             previousValue = employees[j]._totalBounty;
-        }
+        } 
+        return topPerformers;
     }
 
 
@@ -454,7 +453,7 @@ contract User {
      * @param left - left pointer of array
      * @param right - right pointer of array
      */
-    function sortEmployeesByTotalBounty(Employee[] memory arr, int left, int right) private {
+    function sortEmployeesByTotalBounty(Employee[] memory arr, int left, int right) view private {
         int i = left;
         int j = right;
         if(i==j) return;
@@ -480,10 +479,21 @@ contract User {
      */
     function loadTestData() public {
         createEmployer("Google");
-        addEmployee(parseAddr("0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2"), "Ram");
-        addEmployee(parseAddr("0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"), "Sayan");
+        
+        //Local
+        //addEmployee(parseAddr(""), "Ram");
+        //addEmployee(parseAddr(""), "Sayan");
+        //addEmployee(parseAddr(""), "Kaushik");
+
+        //Injected
+        addEmployee(parseAddr(""), "Ram");
+        addEmployee(parseAddr(""), "Sayan");
+        addEmployee(parseAddr(""), "Kaushik");
+
         createCourse("test1", "test1Desc", "https://www.youtube.com/watch?v=nUEBAS5r4Og", 10);
-        createCourse("test2", "test2Desc", "https://www.youtube.com/watch?v=aRJA1r1Gwu0", 20);
+        createCourse("test2", "test2Desc", "https://www.youtube.com/watch?v=aRJA1r1Gwu0", 40);
+        createCourse("test3", "test3Desc", "https://www.youtube.com/watch?v=aRJA1r1Gwu0", 20);
+        createCourse("test4", "test4Desc", "https://www.youtube.com/watch?v=aRJA1r1Gwu0", 5);
     }
 
 
