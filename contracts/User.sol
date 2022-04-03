@@ -46,6 +46,12 @@ contract User {
     // Status of courses employee had subscribed to
     mapping(address => mapping(uint8 => EmployeeCourseStatus)) private employeeCourseStatus;
 
+    // Number of top performers to be determined
+    uint8 constant TOP_PERFORMERS_COUNT = 3;
+
+    // Minimum percentage required to be eligible for leaderboard
+    uint8 constant TOP_PERF_MIN_PERCENTAGE = 10;
+
     /**
      * Course details
      */
@@ -81,6 +87,7 @@ contract User {
         address _address; // the address of the employee
         string username; // an identifier for the employee
         Access access; // locked(0) or unlocked(1)
+        uint8 _totalBounty;
     }
 
     struct Organization {
@@ -227,6 +234,8 @@ contract User {
         for (uint8 i = 0; i < allCourses.length; i++) {
             if (allCourses[i].id == _courseId && employeeCourseStatus[msg.sender][allCourses[i].id] == EmployeeCourseStatus.NOT_STARTED) {
                 employeeCourseStatus[msg.sender][allCourses[i].id] = EmployeeCourseStatus.COMPLETED;
+                employee_AccountDetails[msg.sender]._totalBounty = employee_AccountDetails[msg.sender]._totalBounty 
+                                                                    + allCourses[i].bounty;
                 return allCourses[i].url;
             }
         }
@@ -337,7 +346,8 @@ contract User {
         Employee memory employee = Employee({
             _address: _employeeAddress,
             username: _employeeName,
-            access: Access.Locked
+            access: Access.Locked,
+            _totalBounty: 0
         });
 
         // get next id number for the employee
@@ -395,4 +405,130 @@ contract User {
             employee_AccountDetails[_employeeAddress].access = Access.Locked;
         }
     }
+
+    /**
+     * @notice - Fetches top performers based on total completion percentage
+     */
+    function getTopPerformers() public view returns (Employee[] memory){
+        address[] memory employeeAddesses;
+        if (isEmployee[msg.sender]){
+            employeeAddesses = employer_Employees[employee_Employer[msg.sender]];
+        } else if (isEmployer[msg.sender]) {
+            employeeAddesses = employer_Employees[msg.sender];
+        }
+            
+        Employee[] memory employees = new Employee[](employeeAddesses.length);
+        for(uint8 i = 0; i < employeeAddesses.length; i++) {
+            uint8 totalBountyVal = getTotalCourseBountyValue(employeeAddesses[i]);
+            // Only employees with minimum completion percentage is eligible
+            if (totalBountyVal > 0) {
+                employees[i] = employee_AccountDetails[employeeAddesses[i]];
+            }
+        }
+        if (employees.length > 1) {
+            sortEmployeesByTotalBounty(employees, int(employees.length -1), int(0));
+        }
+
+        uint8 counter = 0;
+        uint8 previousValue = 0;
+        Employee[] memory topPerformers = new Employee[](employeeAddesses.length);
+        for (uint8 j = 0; j < employees.length; j++) {
+            if (employees[j]._totalBounty != previousValue) {
+                if (counter == TOP_PERFORMERS_COUNT) {
+                break;
+                }
+                counter++;
+            }
+            topPerformers[j] = employees[j];
+            previousValue = employees[j]._totalBounty;
+        } 
+        return topPerformers;
+    }
+
+
+    /**
+     * @notice - Sort employees based on bounties earned
+     *
+     * @param arr - address of the employee
+     * @param left - left pointer of array
+     * @param right - right pointer of array
+     */
+    function sortEmployeesByTotalBounty(Employee[] memory arr, int left, int right) view private {
+        int i = left;
+        int j = right;
+        if(i==j) return;
+        uint pivot = arr[uint(left + (right - left) / 2)]._totalBounty;
+        while (i >= j) {
+            while (arr[uint(i)]._totalBounty < pivot) i--;
+            while (pivot < arr[uint(j)]._totalBounty) j++;
+            if (i >= j) {
+                (arr[uint(j)], arr[uint(i)]) = (arr[uint(i)], arr[uint(j)]);
+                i--;
+                j++;
+            }
+        }
+        if (left > j)
+            sortEmployeesByTotalBounty(arr, left, j);
+        if (i > right)
+            sortEmployeesByTotalBounty(arr, i, right);
+    }
+
+
+    /**
+     * @notice - Quick load test data for testing
+     */
+    function loadTestData() public {
+        createEmployer("Google");
+        
+        //Local
+        //addEmployee(parseAddr(""), "Ram");
+        //addEmployee(parseAddr(""), "Sayan");
+        //addEmployee(parseAddr(""), "Kaushik");
+
+        //Injected
+        addEmployee(parseAddr(""), "Ram");
+        addEmployee(parseAddr(""), "Sayan");
+        addEmployee(parseAddr(""), "Kaushik");
+
+        createCourse("test1", "test1Desc", "https://www.youtube.com/watch?v=nUEBAS5r4Og", 10);
+        createCourse("test2", "test2Desc", "https://www.youtube.com/watch?v=aRJA1r1Gwu0", 40);
+        createCourse("test3", "test3Desc", "https://www.youtube.com/watch?v=aRJA1r1Gwu0", 20);
+        createCourse("test4", "test4Desc", "https://www.youtube.com/watch?v=aRJA1r1Gwu0", 5);
+    }
+
+
+    /**
+     * @notice - Convert String to Address value
+     *
+     * @param _a - address value in string format
+     * @return _parsedAddress - address value in Address format
+     */
+    function parseAddr(string memory _a) internal pure returns (address _parsedAddress) {
+        bytes memory tmp = bytes(_a);
+        uint160 iaddr = 0;
+        uint160 b1;
+        uint160 b2;
+        for (uint i = 2; i < 2 + 2 * 20; i += 2) {
+            iaddr *= 256;
+            b1 = uint160(uint8(tmp[i]));
+            b2 = uint160(uint8(tmp[i + 1]));
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            iaddr += (b1 * 16 + b2);
+        }
+        return address(iaddr);
+    }
+
 }
