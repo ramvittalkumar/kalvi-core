@@ -88,6 +88,7 @@ contract User {
         string username; // an identifier for the employee
         Access access; // locked(0) or unlocked(1)
         uint8 _totalBounty;
+        bool _isActive;
     }
 
     struct Organization {
@@ -309,10 +310,47 @@ contract User {
         //determine how many employees the employer has
         uint8 numOfEmployees = employer_Organization[msg.sender].numOfEmployees;
         Employee[] memory employees = new Employee[](numOfEmployees);
+
+        // Determine number of active employees
+        uint8 noOfActiveEmps = 0;
         for (uint8 index = 0; index < numOfEmployees; index++) {
-            employees[index] = member_Organization[msg.sender][index + 1];
+            Employee memory employee = member_Organization[msg.sender][index + 1];
+            if (employee._isActive) {
+                employees[index] = member_Organization[msg.sender][index + 1];
+                noOfActiveEmps++;
+            }
         }
-        return employees;
+
+        // Copy active employees to new array
+        uint8 counter = 0;
+        Employee[] memory result = new Employee[](noOfActiveEmps);
+        for (uint8 index = 0; index < employees.length; index++) {
+            Employee memory employee = member_Organization[msg.sender][index + 1];
+            if (employee._isActive) {
+                result[counter] = member_Organization[msg.sender][index + 1];
+                counter++;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * @notice - This function is used to delete/make inactive an employee
+     */
+    function deleteEmployee(address _employeeAddress) public {
+        require(isEmployer[msg.sender], "Only an Employer can make this request");
+
+        uint8 numOfEmployees = employer_Organization[msg.sender].numOfEmployees;
+        for (uint8 index = 0; index < numOfEmployees; index++) {
+            Employee memory employee = member_Organization[msg.sender][index + 1];
+            if (employee._address == _employeeAddress) {
+                employee._isActive = false;
+                member_Organization[msg.sender][index + 1] = employee;
+                employee_AccountDetails[_employeeAddress] = employee;
+            }
+        }
+        isEmployee[_employeeAddress] = false;
     }
 
     /**
@@ -347,7 +385,8 @@ contract User {
             _address: _employeeAddress,
             username: _employeeName,
             access: Access.Locked,
-            _totalBounty: 0
+            _totalBounty: 0,
+            _isActive: true
         });
 
         // get next id number for the employee
